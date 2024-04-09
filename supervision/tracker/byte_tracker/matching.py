@@ -63,11 +63,11 @@ def generalized_iou_distance(atracks: List, btracks: List) -> np.ndarray:
         atlbrs = [track.tlbr for track in atracks]
         btlbrs = [track.tlbr for track in btracks]
 
-    _ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float32)
-    if _ious.size != 0:
-        _ious = generalized_box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs)) 
+    _gious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float32)
+    if _gious.size != 0:
+        _gious = generalized_box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs)) 
     
-    cost_matrix = 1 - _ious
+    cost_matrix = 1 - (_gious + 1)/2
 
     return cost_matrix
 

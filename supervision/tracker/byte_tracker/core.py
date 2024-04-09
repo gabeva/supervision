@@ -403,7 +403,7 @@ class ByteTrack:
         #dists = matching.iou_distance(r_tracked_stracks, detections_second)
         dists = matching.generalized_iou_distance(r_tracked_stracks, detections_second) ## Changed to generalized iou
         matches, u_track, u_detection_second = matching.linear_assignment(
-            dists, thresh=self.minimum_matching_threshold ## Changed from 0.5 to minimum_matching_threshold
+            dists, thresh=self.minimum_matching_threshold - 0.3 ## Changed from 0.5 to minimum_matching_threshold
         )
         for itracked, idet in matches:
             track = r_tracked_stracks[itracked]
@@ -428,7 +428,7 @@ class ByteTrack:
 
         dists = matching.fuse_score(dists, detections)
         matches, u_unconfirmed, u_detection = matching.linear_assignment(
-            dists, thresh=self.minimum_matching_threshold ## Changed from 0.7
+            dists, thresh=self.minimum_matching_threshold - 0.1 ## Changed from 0.7
         )
         for itracked, idet in matches:
             unconfirmed[itracked].update(detections[idet], self.frame_id)
