@@ -5,10 +5,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from supervision.detection.utils.iou_and_nms import box_iou_batch
-
-if TYPE_CHECKING:
-    from supervision.tracker.byte_tracker.core import STrack
+from supervision.detection.utils import box_iou_batch, generalized_box_iou_batch
 
 
 def indices_to_matches(
@@ -53,6 +50,25 @@ def iou_distance(atracks: list[STrack], btracks: list[STrack]) -> np.ndarray:
     _ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float32)
     if _ious.size != 0:
         _ious = box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs))
+    
+    cost_matrix = 1 - _ious
+
+    return cost_matrix
+
+def generalized_iou_distance(atracks: List, btracks: List) -> np.ndarray:
+    if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
+        len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
+    ):
+        atlbrs = atracks
+        btlbrs = btracks
+    else:
+        atlbrs = [track.tlbr for track in atracks]
+        btlbrs = [track.tlbr for track in btracks]
+
+    _ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float32)
+    if _ious.size != 0:
+        _ious = generalized_box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs)) 
+    
     cost_matrix = 1 - _ious
 
     return cost_matrix
