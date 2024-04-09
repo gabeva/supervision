@@ -3,7 +3,6 @@ from typing import List, Tuple
 import numpy as np
 
 from supervision.detection.core import Detections
-from supervision.detection.utils import box_iou_batch
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
@@ -60,8 +59,9 @@ class STrack(BaseTrack):
 
         self.tracklet_len = 0
         self.state = TrackState.Tracked
-        if frame_id == 1:
-            self.is_activated = True
+        #if frame_id == 1:
+        #    self.is_activated = True
+        self.is_activated = True ## Automatically activate a track
         self.frame_id = frame_id
         self.start_frame = frame_id
 
@@ -215,6 +215,7 @@ class ByteTrack:
     def __init__(
         self,
         track_activation_threshold: float = 0.25,
+        detection_threshold: float = 0.2,
         lost_track_buffer: int = 30,
         minimum_matching_threshold: float = 0.8,
         frame_rate: int = 30,
@@ -223,7 +224,8 @@ class ByteTrack:
         self.minimum_matching_threshold = minimum_matching_threshold
 
         self.frame_id = 0
-        self.det_thresh = self.track_activation_threshold + 0.1
+        #self.det_thresh = self.track_activation_threshold ## renoved the + 0.1
+        self.det_thresh = detection_threshold ## In the end made a new parameter
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
         self.kalman_filter = KalmanFilter()
 
@@ -271,28 +273,27 @@ class ByteTrack:
             ```
         """
 
-        tensors = detections2boxes(detections=detections)
-        tracks = self.update_with_tensors(tensors=tensors)
-
+        tracks = self.update_with_tensors(
+            tensors=detections2boxes(detections=detections)
+        )
+        detections = Detections.empty()
         if len(tracks) > 0:
-            detection_bounding_boxes = np.asarray([det[:4] for det in tensors])
-            track_bounding_boxes = np.asarray([track.tlbr for track in tracks])
-
-            ious = box_iou_batch(detection_bounding_boxes, track_bounding_boxes)
-
-            iou_costs = 1 - ious
-
-            matches, _, _ = matching.linear_assignment(iou_costs, 0.5)
-            detections.tracker_id = np.full(len(detections), -1, dtype=int)
-            for i_detection, i_track in matches:
-                detections.tracker_id[i_detection] = int(tracks[i_track].track_id)
-
-            return detections[detections.tracker_id != -1]
-
+            detections.xyxy = np.array(
+                [track.tlbr for track in tracks], dtype=np.float32
+            )
+            detections.class_id = np.array(
+                [int(t.class_ids) for t in tracks], dtype=int
+            )
+            detections.tracker_id = np.array(
+                [int(t.track_id) for t in tracks], dtype=int
+            )
+            detections.confidence = np.array(
+                [t.score for t in tracks], dtype=np.float32
+            )
         else:
             detections.tracker_id = np.array([], dtype=int)
 
-            return detections
+        return detections
 
     def reset(self):
         """
@@ -329,9 +330,9 @@ class ByteTrack:
         scores = tensors[:, 4]
         bboxes = tensors[:, :4]
 
-        remain_inds = scores > self.track_activation_threshold
+        remain_inds = scores >= self.det_thresh ## Added equality sign
         inds_low = scores > 0.1
-        inds_high = scores < self.track_activation_threshold
+        inds_high = scores < self.det_thresh
 
         inds_second = np.logical_and(inds_low, inds_high)
         dets_second = bboxes[inds_second]
@@ -360,14 +361,16 @@ class ByteTrack:
                 unconfirmed.append(track)
             else:
                 tracked_stracks.append(track)
-
+        
         """ Step 2: First association, with high score detection boxes"""
         strack_pool = joint_tracks(tracked_stracks, self.lost_tracks)
         # Predict the current location with KF
         STrack.multi_predict(strack_pool)
-        dists = matching.iou_distance(strack_pool, detections)
+        #dists = matching.iou_distance(strack_pool, detections)
+        dists = matching.generalized_iou_distance(strack_pool, detections) ## Changed to generalized iou
 
         dists = matching.fuse_score(dists, detections)
+        
         matches, u_track, u_detection = matching.linear_assignment(
             dists, thresh=self.minimum_matching_threshold
         )
@@ -397,9 +400,10 @@ class ByteTrack:
             for i in u_track
             if strack_pool[i].state == TrackState.Tracked
         ]
-        dists = matching.iou_distance(r_tracked_stracks, detections_second)
+        #dists = matching.iou_distance(r_tracked_stracks, detections_second)
+        dists = matching.generalized_iou_distance(r_tracked_stracks, detections_second) ## Changed to generalized iou
         matches, u_track, u_detection_second = matching.linear_assignment(
-            dists, thresh=0.5
+            dists, thresh=self.minimum_matching_threshold ## Changed from 0.5 to minimum_matching_threshold
         )
         for itracked, idet in matches:
             track = r_tracked_stracks[itracked]
@@ -419,11 +423,12 @@ class ByteTrack:
 
         """Deal with unconfirmed tracks, usually tracks with only one beginning frame"""
         detections = [detections[i] for i in u_detection]
-        dists = matching.iou_distance(unconfirmed, detections)
+        #dists = matching.iou_distance(unconfirmed, detections)
+        dists = matching.generalized_iou_distance(unconfirmed, detections) ## Changed to generalized iou
 
         dists = matching.fuse_score(dists, detections)
         matches, u_unconfirmed, u_detection = matching.linear_assignment(
-            dists, thresh=0.7
+            dists, thresh=self.minimum_matching_threshold ## Changed from 0.7
         )
         for itracked, idet in matches:
             unconfirmed[itracked].update(detections[idet], self.frame_id)
@@ -436,10 +441,11 @@ class ByteTrack:
         """ Step 4: Init new stracks"""
         for inew in u_detection:
             track = detections[inew]
-            if track.score < self.det_thresh:
+            if track.score < self.track_activation_threshold:
                 continue
             track.activate(self.kalman_filter, self.frame_id)
             activated_starcks.append(track)
+
         """ Step 5: Update state"""
         for track in self.lost_tracks:
             if self.frame_id - track.end_frame > self.max_time_lost:
@@ -458,7 +464,9 @@ class ByteTrack:
         self.tracked_tracks, self.lost_tracks = remove_duplicate_tracks(
             self.tracked_tracks, self.lost_tracks
         )
+
         output_stracks = [track for track in self.tracked_tracks if track.is_activated]
+        # output_stracks = self.tracked_tracks + self.lost_tracks ##Output everything to avoid blinking when annotating
 
         return output_stracks
 

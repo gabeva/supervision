@@ -58,6 +58,41 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
     area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
     return area_inter / (area_true[:, None] + area_detection - area_inter)
 
+def generalized_box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.ndarray:
+    """
+    Generalized IoU from https://giou.stanford.edu/
+
+    The boxes should be in [x0, y0, x1, y1] format
+
+    Returns a [N, M] pairwise matrix, where N = len(boxes1)
+    and M = len(boxes2)
+    """
+    # degenerate boxes gives inf / nan results
+    # so do an early check
+    assert (boxes_true[:, 2:] >= boxes_true[:, :2]).all()
+    assert (boxes_detection[:, 2:] >= boxes_detection[:, :2]).all()
+    
+    def box_area(box):
+        return (box[2] - box[0]) * (box[3] - box[1])
+
+    area_true = box_area(boxes_true.T)
+    area_detection = box_area(boxes_detection.T)
+
+    top_left = np.maximum(boxes_true[:, None, :2], boxes_detection[:, :2])
+    bottom_right = np.minimum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
+
+    area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
+    union = area_true[:, None] + area_detection - area_inter
+
+    iou = area_inter / union
+
+    lt = np.minimum(boxes_true[:, None, :2], boxes_detection[:, :2])
+    rb = np.maximum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
+
+    wh = (rb - lt).clip(min=0)  # [N,M,2]
+    area = wh[:, :, 0] * wh[:, :, 1]
+
+    return iou - (area - union) / area
 
 def _mask_iou_batch_split(
     masks_true: np.ndarray, masks_detection: np.ndarray
@@ -845,15 +880,8 @@ def get_data_item(
         elif isinstance(value, list):
             if isinstance(index, slice):
                 subset_data[key] = value[index]
-            elif isinstance(index, list):
+            elif isinstance(index, (list, np.ndarray)):
                 subset_data[key] = [value[i] for i in index]
-            elif isinstance(index, np.ndarray):
-                if index.dtype == bool:
-                    subset_data[key] = [
-                        value[i] for i, index_value in enumerate(index) if index_value
-                    ]
-                else:
-                    subset_data[key] = [value[i] for i in index]
             elif isinstance(index, int):
                 subset_data[key] = [value[index]]
             else:

@@ -3,7 +3,7 @@ from typing import List, Tuple
 import numpy as np
 from scipy.optimize import linear_sum_assignment
 
-from supervision.detection.utils import box_iou_batch
+from supervision.detection.utils import box_iou_batch, generalized_box_iou_batch
 
 
 def indices_to_matches(
@@ -20,7 +20,7 @@ def indices_to_matches(
 
 def linear_assignment(
     cost_matrix: np.ndarray, thresh: float
-) -> [np.ndarray, Tuple[int], Tuple[int, int]]:
+) -> Tuple[np.ndarray, Tuple[int], Tuple[int, int]]:
     if cost_matrix.size == 0:
         return (
             np.empty((0, 2), dtype=int),
@@ -48,6 +48,25 @@ def iou_distance(atracks: List, btracks: List) -> np.ndarray:
     _ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float32)
     if _ious.size != 0:
         _ious = box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs))
+    
+    cost_matrix = 1 - _ious
+
+    return cost_matrix
+
+def generalized_iou_distance(atracks: List, btracks: List) -> np.ndarray:
+    if (len(atracks) > 0 and isinstance(atracks[0], np.ndarray)) or (
+        len(btracks) > 0 and isinstance(btracks[0], np.ndarray)
+    ):
+        atlbrs = atracks
+        btlbrs = btracks
+    else:
+        atlbrs = [track.tlbr for track in atracks]
+        btlbrs = [track.tlbr for track in btracks]
+
+    _ious = np.zeros((len(atlbrs), len(btlbrs)), dtype=np.float32)
+    if _ious.size != 0:
+        _ious = generalized_box_iou_batch(np.asarray(atlbrs), np.asarray(btlbrs)) 
+    
     cost_matrix = 1 - _ious
 
     return cost_matrix
