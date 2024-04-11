@@ -27,8 +27,10 @@ class KalmanFilter:
         for i in range(ndim):
             self._motion_mat[i, ndim + i] = dt
         self._update_mat = np.eye(ndim, 2 * ndim)
-        self._std_weight_position = 1.0 / 20
-        self._std_weight_velocity = 1.0 / 160
+        #self._std_weight_position = 1.0 / 20
+        #self._std_weight_velocity = 1.0 / 160
+        self._std_weight_position = 5
+        self._std_weight_velocity = 2
 
     def initiate(self, measurement: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """
@@ -203,3 +205,65 @@ class KalmanFilter:
             (kalman_gain, projected_cov, kalman_gain.T)
         )
         return new_mean, new_covariance
+    
+class NoKalmanFilter:
+    """
+    """
+
+    def __init__(self):
+        ndim, dt = 4, 1.0
+
+    def initiate(self, measurement: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Create track from an unassociated measurement.
+
+        Args:
+            measurement (ndarray): Bounding box coordinates (x, y, a, h) with
+                center position (x, y), aspect ratio a, and height h.
+
+        Returns:
+            Tuple[ndarray, ndarray]: Returns the mean vector (8 dimensional) and
+                covariance matrix (8x8 dimensional) of the new track.
+                Unobserved velocities are initialized to 0 mean.
+        """
+        mean_pos = measurement
+        mean_vel = np.zeros_like(mean_pos)
+        mean = np.r_[mean_pos, mean_vel]
+
+        covariance = np.eye(4)
+        return mean, covariance
+
+    def predict(
+        self, mean: np.ndarray, covariance: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        """
+
+        return mean, covariance
+
+    def project(
+        self, mean: np.ndarray, covariance: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        """
+        return mean, covariance
+
+    def multi_predict(
+        self, mean: np.ndarray, covariance: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        """
+
+        return mean, covariance
+
+    def update(
+        self, mean: np.ndarray, covariance: np.ndarray, measurement: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        """
+        mean_pos = measurement
+        mean_vel = np.zeros_like(mean_pos)
+        mean = np.r_[mean_pos, mean_vel]
+
+        covariance = np.eye(1)
+        return mean, covariance

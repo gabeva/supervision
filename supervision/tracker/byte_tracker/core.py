@@ -5,12 +5,13 @@ import numpy as np
 from supervision.detection.core import Detections
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
-from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter
+from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter, NoKalmanFilter
 from supervision.utils.internal import deprecated_parameter
 
 
 class STrack(BaseTrack):
-    shared_kalman = KalmanFilter()
+    #shared_kalman = KalmanFilter()
+    shared_kalman = NoKalmanFilter() ## Removed Kalman Filter
 
     def __init__(self, tlwh, score, class_ids):
         # wait activate
@@ -144,7 +145,7 @@ class STrack(BaseTrack):
         return ret
 
     def __repr__(self):
-        return "OT_{}_({}-{})".format(self.track_id, self.start_frame, self.end_frame)
+        return "OT_{}_({}-{})_({:.0f};{:.0f})-({:.0f};{:.0f})".format(self.track_id, self.start_frame, self.end_frame, self.tlwh[0], self.tlwh[1], self.tlwh[2], self.tlwh[3])
 
 
 def detections2boxes(detections: Detections) -> np.ndarray:
@@ -227,7 +228,8 @@ class ByteTrack:
         #self.det_thresh = self.track_activation_threshold ## renoved the + 0.1
         self.det_thresh = detection_threshold ## In the end made a new parameter
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
-        self.kalman_filter = KalmanFilter()
+        #self.kalman_filter = KalmanFilter()
+        self.kalman_filter = NoKalmanFilter() ## Remove Kalman Filtering
 
         self.tracked_tracks: List[STrack] = []
         self.lost_tracks: List[STrack] = []
@@ -365,10 +367,10 @@ class ByteTrack:
         """ Step 2: First association, with high score detection boxes"""
         strack_pool = joint_tracks(tracked_stracks, self.lost_tracks)
         # Predict the current location with KF
-        STrack.multi_predict(strack_pool)
+        #STrack.multi_predict(strack_pool)
+        #STrack.multi_predict(self.lost_tracks) ## changed to lost_tracks
         #dists = matching.iou_distance(strack_pool, detections)
         dists = matching.generalized_iou_distance(strack_pool, detections) ## Changed to generalized iou
-
         dists = matching.fuse_score(dists, detections)
         
         matches, u_track, u_detection = matching.linear_assignment(
@@ -402,6 +404,7 @@ class ByteTrack:
         ]
         #dists = matching.iou_distance(r_tracked_stracks, detections_second)
         dists = matching.generalized_iou_distance(r_tracked_stracks, detections_second) ## Changed to generalized iou
+
         matches, u_track, u_detection_second = matching.linear_assignment(
             dists, thresh=self.minimum_matching_threshold - 0.3 ## Changed from 0.5 to minimum_matching_threshold
         )

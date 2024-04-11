@@ -946,7 +946,10 @@ class LabelAnnotator:
         text_w, text_h = text_wh
 
         if position == Position.TOP_LEFT:
-            return center_x, center_y - text_h, center_x + text_w, center_y
+            if center_y - text_h > 0:
+                return center_x, center_y - text_h, center_x + text_w, center_y
+            else:
+                return center_x, center_y, center_x + text_w, center_y + text_h
         elif position == Position.TOP_RIGHT:
             return center_x - text_w, center_y - text_h, center_x, center_y
         elif position == Position.TOP_CENTER:
