@@ -44,7 +44,7 @@ def box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.nda
         np.ndarray: Pairwise IoU of boxes from `boxes_true` and `boxes_detection`.
             `shape = (N, M)` where `N` is number of true objects and
             `M` is number of detected objects.
-    """
+    """ 
     assert (boxes_true[:, 2:] >= boxes_true[:, :2]).all()
     assert (boxes_detection[:, 2:] >= boxes_detection[:, :2]).all()
     

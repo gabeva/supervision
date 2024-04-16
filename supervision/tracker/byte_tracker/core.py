@@ -5,13 +5,14 @@ import numpy as np
 from supervision.detection.core import Detections
 from supervision.tracker.byte_tracker import matching
 from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
-from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter, NoKalmanFilter
+from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter, NoKalmanFilter, KalmanFilterNearPerfectMeasurements
 from supervision.utils.internal import deprecated_parameter
 
 
 class STrack(BaseTrack):
     #shared_kalman = KalmanFilter()
-    shared_kalman = NoKalmanFilter() ## Removed Kalman Filter
+    #shared_kalman = NoKalmanFilter() ## Removed Kalman Filter
+    shared_kalman = KalmanFilterNearPerfectMeasurements() ## Removed Kalman Filter
 
     def __init__(self, tlwh, score, class_ids):
         # wait activate
@@ -106,6 +107,10 @@ class STrack(BaseTrack):
         if self.mean is None:
             return self._tlwh.copy()
         ret = self.mean[:4].copy()
+        
+        if ret[2] < 0:
+            ret[2] *= -1
+        
         ret[2] *= ret[3]
         ret[:2] -= ret[2:] / 2
         return ret
@@ -229,7 +234,8 @@ class ByteTrack:
         self.det_thresh = detection_threshold ## In the end made a new parameter
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
         #self.kalman_filter = KalmanFilter()
-        self.kalman_filter = NoKalmanFilter() ## Remove Kalman Filtering
+        #self.kalman_filter = NoKalmanFilter() ## Remove Kalman Filtering
+        self.kalman_filter = KalmanFilterNearPerfectMeasurements() ## Remove Kalman Filtering
 
         self.tracked_tracks: List[STrack] = []
         self.lost_tracks: List[STrack] = []
@@ -367,7 +373,8 @@ class ByteTrack:
         """ Step 2: First association, with high score detection boxes"""
         strack_pool = joint_tracks(tracked_stracks, self.lost_tracks)
         # Predict the current location with KF
-        #STrack.multi_predict(strack_pool)
+        STrack.multi_predict(strack_pool)
+
         #STrack.multi_predict(self.lost_tracks) ## changed to lost_tracks
         #dists = matching.iou_distance(strack_pool, detections)
         dists = matching.generalized_iou_distance(strack_pool, detections) ## Changed to generalized iou

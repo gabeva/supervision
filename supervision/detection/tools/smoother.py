@@ -70,10 +70,6 @@ class DetectionsSmoother:
         """
 
         if detections.tracker_id is None:
-            print(
-                "Smoothing skipped. DetectionsSmoother requires tracker_id. Refer to "
-                "https://supervision.roboflow.com/latest/trackers for more information."
-            )
             return detections
 
         for detection_idx in range(len(detections)):
