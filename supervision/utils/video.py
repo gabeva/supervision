@@ -22,6 +22,8 @@ class VideoInfo:
         fps (int): frames per second of the video
         total_frames (Optional[int]): total number of frames in the video,
             default is None
+        is_color (bool, optional): flag if video is RGB, does not work for from_video_path
+            default is True
 
     Examples:
         ```python
@@ -40,7 +42,8 @@ class VideoInfo:
     width: int
     height: int
     fps: int
-    total_frames: int | None = None
+    total_frames: Optional[int] = None
+    is_color: Optional[bool] = True
 
     @classmethod
     def from_video_path(cls, video_path: str) -> VideoInfo:
@@ -100,6 +103,7 @@ class VideoSink:
             self.__fourcc,
             self.video_info.fps,
             self.video_info.resolution_wh,
+            self.video_info.is_color,
         )
         return self
 
