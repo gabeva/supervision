@@ -201,20 +201,25 @@ class ByteTrack:
         track_activation_threshold: float = 0.25,
         detection_threshold: float = 0.2,
         lost_track_buffer: int = 30,
-        minimum_matching_threshold: float = 0.8,
+        minimum_matching_threshold_first_associations: float = 0.8, 
+        minimum_matching_threshold_second_associations: float = 0.5,
+        minimum_matching_threshold_unconfirmed_tracks: float = 0.7,
+        uncertainty = False,
         frame_rate: int = 30,
         minimum_consecutive_frames: int = 1,
     ):
         self.track_activation_threshold = track_activation_threshold
-        self.minimum_matching_threshold = minimum_matching_threshold
+        self.minimum_matching_threshold_first_associations = minimum_matching_threshold_first_associations
+        self.minimum_matching_threshold_second_associations = minimum_matching_threshold_second_associations
+        self.minimum_matching_threshold_unconfirmed_tracks = minimum_matching_threshold_unconfirmed_tracks
+        self.det_thresh = detection_threshold ## In the end made a new parameter
 
         self.frame_id = 0
-        #self.det_thresh = self.track_activation_threshold ## renoved the + 0.1
-        self.det_thresh = detection_threshold ## In the end made a new parameter
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
-        #self.kalman_filter = KalmanFilter()
-        #self.kalman_filter = NoKalmanFilter() ## Remove Kalman Filtering
-        self.kalman_filter = KalmanFilterNearPerfectMeasurements() ## Remove Kalman Filtering
+        if uncertainty:
+            self.kalman_filter = KalmanFilter()
+        else:
+            self.kalman_filter = KalmanFilterNearPerfectMeasurements() ## Remove Kalman Filtering
 
         # Warning, possible bug: If you also set internal_id to start at 1,
         # all traces will be connected across objects.
@@ -366,7 +371,7 @@ class ByteTrack:
         dists = matching.fuse_score(dists, detections)
         
         matches, u_track, u_detection = matching.linear_assignment(
-            dists, thresh=self.minimum_matching_threshold
+            dists, thresh=self.minimum_matching_threshold_first_associations
         )
 
         for itracked, idet in matches:
@@ -405,7 +410,7 @@ class ByteTrack:
         dists = matching.generalized_iou_distance(r_tracked_stracks, detections_second) ## Changed to generalized iou
 
         matches, u_track, u_detection_second = matching.linear_assignment(
-            dists, thresh=self.minimum_matching_threshold - 0.3 ## Changed from 0.5 to minimum_matching_threshold
+            dists, thresh=self.minimum_matching_threshold_second_associations ## Changed from 0.5 to minimum_matching_threshold
         )
         for itracked, idet in matches:
             track = r_tracked_stracks[itracked]
@@ -430,7 +435,7 @@ class ByteTrack:
 
         dists = matching.fuse_score(dists, detections)
         matches, u_unconfirmed, u_detection = matching.linear_assignment(
-            dists, thresh=self.minimum_matching_threshold - 0.1 ## Changed from 0.7
+            dists, thresh=self.minimum_matching_threshold_unconfirmed_tracks ## Changed from 0.7
         )
         for itracked, idet in matches:
             unconfirmed[itracked].update(detections[idet], self.frame_id)
