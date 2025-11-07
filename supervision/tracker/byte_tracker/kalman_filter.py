@@ -28,7 +28,7 @@ class KalmanFilter:
         self._std_weight_position = 1.0 / 20
         self._std_weight_velocity = 1.0 / 160
         
-    def initiate(self, measurement: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def initiate(self, measurement: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Create track from an unassociated measurement.
 
@@ -71,7 +71,7 @@ class KalmanFilter:
                 the object state at the previous time step.
 
         Returns:
-            Tuple[ndarray, ndarray]: Returns the mean vector and
+            tuple[ndarray, ndarray]: Returns the mean vector and
                 covariance matrix of the predicted state.
                 Unobserved velocities are initialized to 0 mean.
         """
@@ -225,7 +225,7 @@ class KalmanFilterNearPerfectMeasurements(KalmanFilter):
         self._std_weight_position = 1.0 / 20
         self._std_weight_velocity = 1.0 / 2000
         
-    def initiate(self, measurement: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def initiate(self, measurement: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Create track from an unassociated measurement.
 
@@ -247,7 +247,7 @@ class KalmanFilterNearPerfectMeasurements(KalmanFilter):
 
     def project(
         self, mean: np.ndarray, covariance: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Project state distribution to measurement space.
 
@@ -275,7 +275,7 @@ class KalmanFilterNearPerfectMeasurements(KalmanFilter):
 
     def update(
         self, mean: np.ndarray, covariance: np.ndarray, measurement: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         Run Kalman filter correction step.
 
@@ -315,7 +315,7 @@ class NoKalmanFilter:
     def __init__(self):
         ndim, dt = 4, 1.0
 
-    def initiate(self, measurement: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    def initiate(self, measurement: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         """
         Create track from an unassociated measurement.
 
@@ -337,7 +337,7 @@ class NoKalmanFilter:
 
     def predict(
         self, mean: np.ndarray, covariance: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         """
 
@@ -345,14 +345,14 @@ class NoKalmanFilter:
 
     def project(
         self, mean: np.ndarray, covariance: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         """
         return mean, covariance
 
     def multi_predict(
         self, mean: np.ndarray, covariance: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         """
 
@@ -360,7 +360,7 @@ class NoKalmanFilter:
 
     def update(
         self, mean: np.ndarray, covariance: np.ndarray, measurement: np.ndarray
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """
         """
         mean_pos = measurement
