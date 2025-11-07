@@ -2,12 +2,12 @@ import numpy as np
 
 from supervision.detection.core import Detections
 from supervision.tracker.byte_tracker import matching
-from supervision.tracker.byte_tracker.basetrack import BaseTrack, TrackState
+from supervision.tracker.byte_tracker.single_object_track import TrackState
 from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter, NoKalmanFilter, KalmanFilterNearPerfectMeasurements
 from supervision.utils.internal import deprecated_parameter
 
 
-class STrack(BaseTrack):
+class STrack:
     #shared_kalman = KalmanFilter()
     #shared_kalman = NoKalmanFilter() ## Removed Kalman Filter
     shared_kalman = KalmanFilterNearPerfectMeasurements() ## Removed Kalman Filter
