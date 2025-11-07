@@ -230,6 +230,45 @@ def box_iou_batch(
     ious = np.nan_to_num(ious)
     return ious
 
+def generalized_box_iou_batch(boxes_true: np.ndarray, boxes_detection: np.ndarray) -> np.ndarray:
+    """
+    Generalized IoU from https://giou.stanford.edu/
+
+    The boxes should be in [x0, y0, x1, y1] format
+
+    Returns a [N, M] pairwise matrix, where N = len(boxes1)
+    and M = len(boxes2)
+    """
+    # degenerate boxes gives inf / nan results
+    # so do an early check
+    assert (boxes_true[:, 2:] >= boxes_true[:, :2]).all()
+    assert (boxes_detection[:, 2:] >= boxes_detection[:, :2]).all()
+    
+    def box_area(box):
+        return (box[2] - box[0]) * (box[3] - box[1])
+
+    area_true = box_area(boxes_true.T)
+    area_detection = box_area(boxes_detection.T)
+
+    top_left = np.maximum(boxes_true[:, None, :2], boxes_detection[:, :2])
+    bottom_right = np.minimum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
+
+    area_inter = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
+    union = area_true[:, None] + area_detection - area_inter
+
+    area_diff = np.abs((area_true[:, None] - area_detection)) / (area_true[:, None] + area_detection)
+
+    iou = area_inter / union
+
+    top_left = np.minimum(boxes_true[:, None, :2], boxes_detection[:, :2])
+    bottom_right = np.maximum(boxes_true[:, None, 2:], boxes_detection[:, 2:])
+
+    area_outer = np.prod(np.clip(bottom_right - top_left, a_min=0, a_max=None), 2)
+
+    giou = iou - (area_outer - union) / area_outer
+
+    return giou - 2*area_diff
+    #return iou - area_diff
 
 def _jaccard(box_a: list[float], box_b: list[float], is_crowd: bool) -> float:
     """
