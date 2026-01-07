@@ -3,7 +3,10 @@ import numpy as np
 from supervision.detection.core import Detections
 from supervision.detection.utils.iou_and_nms import box_iou_batch
 from supervision.tracker.byte_tracker import matching
-from supervision.tracker.byte_tracker.kalman_filter import KalmanFilter, KalmanFilterNearPerfectMeasurements
+from supervision.tracker.byte_tracker.kalman_filter import (
+    KalmanFilter,
+    KalmanFilterNearPerfectMeasurements,
+)
 from supervision.tracker.byte_tracker.single_object_track import STrack, TrackState
 from supervision.tracker.byte_tracker.utils import IdCounter
 
@@ -40,22 +43,27 @@ class ByteTrack:
         track_activation_threshold: float = 0.25,
         detection_threshold: float = 0.2,
         lost_track_buffer: int = 30,
-        minimum_matching_threshold_first_associations: float = 0.8, 
+        minimum_matching_threshold_first_associations: float = 0.8,
         minimum_matching_threshold_second_associations: float = 0.5,
         minimum_matching_threshold_unconfirmed_tracks: float = 0.7,
-        uncertainty = False,
+        uncertainty=False,
         frame_rate: int = 30,
         minimum_consecutive_frames: int = 1,
     ):
         self.track_activation_threshold = track_activation_threshold
-        self.minimum_matching_threshold_first_associations = minimum_matching_threshold_first_associations
-        self.minimum_matching_threshold_second_associations = minimum_matching_threshold_second_associations
-        self.minimum_matching_threshold_unconfirmed_tracks = minimum_matching_threshold_unconfirmed_tracks
-        self.det_thresh = detection_threshold ## In the end made a new parameter
-
+        self.minimum_matching_threshold_first_associations = (
+            minimum_matching_threshold_first_associations
+        )
+        self.minimum_matching_threshold_second_associations = (
+            minimum_matching_threshold_second_associations
+        )
+        self.minimum_matching_threshold_unconfirmed_tracks = (
+            minimum_matching_threshold_unconfirmed_tracks
+        )
+        self.det_thresh = detection_threshold  ## In the end made a new parameter
 
         self.frame_id = 0
-        self.det_thresh = self.track_activation_threshold + 0.1
+        # self.det_thresh = self.track_activation_threshold + 0.1
         self.max_time_lost = int(frame_rate / 30.0 * lost_track_buffer)
         self.minimum_consecutive_frames = minimum_consecutive_frames
         if uncertainty:
